@@ -33,8 +33,7 @@ This document outlines how to create a release of pluginrpc-go.
    _Make sure no new commits are merged until the release is complete._
 
 5. Review all commits in the new release and for each PR check an appropriate label is used and edit
-   the title to be meaninful to end users. This will help auto-generated release notes match the
-   final notes as closely as possible.
+   the title to be meaningful to end users.
 
 6. Using the Github UI, create a new release.
 
@@ -43,14 +42,13 @@ This document outlines how to create a release of pluginrpc-go.
    - Title the Release “vX.Y.Z”.
    - Click “set as latest release”.
    - Set the last version as the “Previous tag”.
-   - Click “Generate release notes” to autogenerate release notes.
    - Edit the release notes.
 
 7. Publish the release.
 
-8. On a new branch, open [pluginrpc.go](pluginrpc.go) and change the `Version` to increment the minor
-   tag and append the `-dev` suffix. Use the next minor release - we never anticipate bugs and patch
-   releases.
+8. On a new branch, open [pluginrpc.go](pluginrpc.go) and change the `Version` to increment the
+   minor tag and append the `-dev` suffix. Use the next minor release - we never anticipate bugs and
+   patch releases.
 
    ```patch
    -const Version = "1.14.0"
