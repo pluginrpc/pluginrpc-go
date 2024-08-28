@@ -1,0 +1,105 @@
+// Copyright 2024 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package pluginrpc
+
+import (
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+
+	"github.com/spf13/pflag"
+)
+
+const (
+	protocolVersion = 1
+	flagProtocol    = "protocol"
+	flagSpec        = "spec"
+	flagFormat      = "format"
+)
+
+type flags struct {
+	printProtocol bool
+	printSpec     bool
+	format        Format
+}
+
+func parseFlags(output io.Writer, args []string) (*flags, []string, error) {
+	flags := &flags{}
+	var formatString string
+	flagSet := pflag.NewFlagSet("plugin", pflag.ContinueOnError)
+	flagSet.SetOutput(output)
+	flagSet.BoolVar(&flags.printProtocol, flagProtocol, false, "Print the protocol to stdout and exit.")
+	flagSet.BoolVar(&flags.printSpec, flagSpec, false, "Print the spec to stdout in the specified format and exit.")
+	flagSet.StringVar(&formatString, flagFormat, formatBinaryString, fmt.Sprintf("The format to use for requests, responses, and specs. Must be one of [%q, %q].", formatBinaryString, formatJSONString))
+	if err := flagSet.Parse(args); err != nil {
+		return nil, nil, err
+	}
+	if flags.printProtocol && flags.printSpec {
+		return nil, nil, fmt.Errorf("cannot specify both --%s and --%s", flagProtocol, flagSpec)
+	}
+	format := FormatBinary
+	if formatString != "" {
+		format = FormatForString(formatString)
+		if format == 0 {
+			return nil, nil, fmt.Errorf("invalid value for --%s: %q", flagFormat, formatString)
+		}
+	}
+	if err := validateFormat(format); err != nil {
+		return nil, nil, err
+	}
+	flags.format = format
+	return flags, flagSet.Args(), nil
+}
+
+func marshalProtocol(value int) []byte {
+	return []byte(strconv.Itoa(value) + "\n")
+}
+
+func unmarshalProtocol(data []byte) (int, error) {
+	dataString := strings.TrimSpace(string(data))
+	value, err := strconv.Atoi(dataString)
+	if err != nil {
+		return 0, fmt.Errorf("invalid protocol: %q", dataString)
+	}
+	return value, err
+}
+
+func marshalSpec(format Format, value any) ([]byte, error) {
+	protoValue, err := toProtoMessage(value)
+	if err != nil {
+		return nil, err
+	}
+	codec, err := codecForFormat(format)
+	if err != nil {
+		return nil, err
+	}
+	return codec.Marshal(protoValue)
+}
+
+func unmarshalSpec(format Format, data []byte, value any) error {
+	if len(data) == 0 {
+		return nil
+	}
+	codec, err := codecForFormat(format)
+	if err != nil {
+		return err
+	}
+	protoValue, err := toProtoMessage(value)
+	if err != nil {
+		return err
+	}
+	return codec.Unmarshal(data, protoValue)
+}

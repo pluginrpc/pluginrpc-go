@@ -1,0 +1,10 @@
+/.tmp/
+*.pprof
+*.svg
+cover.out
+
+/cmd/protoc-gen-pluginrpc-go/protoc-gen-pluginrpc-go
+/internal/example/cmd/pluginrpc-example-client-error/pluginrpc-example-client-error
+/internal/example/cmd/pluginrpc-example-client-list/pluginrpc-example-client-list
+/internal/example/cmd/pluginrpc-example-client-request/pluginrpc-example-client-request
+/internal/example/cmd/pluginrpc-example-server/pluginrpc-example-server
