@@ -123,10 +123,9 @@ response, err := echoServiceClient.EchoRequest(
 
 See [pluginrpc_test.go](pluginrpc_test.go) for an example of how to test plugins.
 
-## Status: Alpha
+## Status: Beta
 
-This framework is in active development, and should not be considered stable. We're publishing it
-publicly to get early feedback as we approach stability.
+This framework is in active development, and should not be considered stable.
 
 ## Legal
 
