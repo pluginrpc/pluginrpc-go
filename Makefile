@@ -32,7 +32,7 @@ clean: ## Delete intermediate build artifacts
 	git clean -Xdf
 
 .PHONY: test
-test: build $(BIN)/example-plugin ## Run unit tests
+test: build $(BIN)/echo-plugin ## Run unit tests
 	go test -vet=off -race -cover ./...
 
 .PHONY: build
@@ -91,7 +91,7 @@ $(BIN)/protoc-gen-pluginrpc-go:
 	@mkdir -p $(@D)
 	go build -o $(@) ./cmd/protoc-gen-pluginrpc-go
 
-.PHONY: $(BIN)/example-plugin
-$(BIN)/example-plugin:
+.PHONY: $(BIN)/echo-plugin
+$(BIN)/echo-plugin:
 	@mkdir -p $(@D)
-	go build -o $(@) ./internal/example/cmd/example-plugin
+	go build -o $(@) ./internal/example/cmd/echo-plugin

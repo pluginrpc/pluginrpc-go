@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main implements a client that calls the EchoList RPC on the
-// example-plugin plugin.
+// Package main implements a client that calls the EchoRequest RPC on the
+// echo-plugin plugin.
 //
-// This will echo the list produded by EchoList.
+// This will echo back any args given to this client.
 package main
 
 import (
@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"pluginrpc.com/pluginrpc"
+	examplev1 "pluginrpc.com/pluginrpc/internal/example/gen/pluginrpc/example/v1"
 	"pluginrpc.com/pluginrpc/internal/example/gen/pluginrpc/example/v1/examplev1pluginrpc"
 )
 
@@ -37,15 +38,20 @@ func main() {
 }
 
 func run() error {
-	client := pluginrpc.NewClient(pluginrpc.NewExecRunner("example-plugin"))
+	client := pluginrpc.NewClient(pluginrpc.NewExecRunner("echo-plugin"))
 	echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
 	if err != nil {
 		return err
 	}
-	response, err := echoServiceClient.EchoList(context.Background(), nil)
+	response, err := echoServiceClient.EchoRequest(
+		context.Background(),
+		&examplev1.EchoRequestRequest{
+			Message: strings.Join(os.Args[1:], " "),
+		},
+	)
 	if err != nil {
 		return err
 	}
-	_, err = os.Stdout.Write([]byte(strings.Join(response.GetList(), "\n") + "\n"))
+	_, err = os.Stdout.Write([]byte(response.GetMessage() + "\n"))
 	return err
 }

@@ -37,9 +37,9 @@ func newServer() (pluginrpc.Server, error) {
 		//
 		// This means that the following commands will invoke their respective procedures:
 		//
-		//   example-plugin echo request
-		//   example-plugin /pluginrpc.example.v1.EchoService/EchoList
-		//   example-plugin echo error
+		//   echo-plugin echo request
+		//   echo-plugin /pluginrpc.example.v1.EchoService/EchoList
+		//   echo-plugin echo error
 		EchoRequest: []pluginrpc.ProcedureOption{pluginrpc.ProcedureWithArgs("echo", "request")},
 		EchoError:   []pluginrpc.ProcedureOption{pluginrpc.ProcedureWithArgs("echo", "error")},
 	}.Build()

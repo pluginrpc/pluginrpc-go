@@ -28,7 +28,7 @@ import (
 	"pluginrpc.com/pluginrpc/internal/example/gen/pluginrpc/example/v1/examplev1pluginrpc"
 )
 
-const echoServicePluginProgramName = "example-plugin"
+const echoPluginProgramName = "echo-plugin"
 
 // We want to append 0 so that we call pluginrpc.ClientWithFormat with the default Format.
 var allTestFormats = append(slices.Clone(pluginrpc.AllFormats), 0)
@@ -128,7 +128,7 @@ func forEachDimension(t *testing.T, f func(*testing.T, pluginrpc.Client)) {
 }
 
 func newExecRunnerClient(clientOptions ...pluginrpc.ClientOption) (pluginrpc.Client, error) {
-	return pluginrpc.NewClient(pluginrpc.NewExecRunner(echoServicePluginProgramName), clientOptions...), nil
+	return pluginrpc.NewClient(pluginrpc.NewExecRunner(echoPluginProgramName), clientOptions...), nil
 }
 
 func newServerRunnerClient(clientOptions ...pluginrpc.ClientOption) (pluginrpc.Client, error) {
