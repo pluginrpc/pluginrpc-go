@@ -49,6 +49,9 @@ issues:
       - goconst
       path: cmd/protoc-gen-pluginrpc-go/main.go
     - linters:
+      - varnamelen
+      path: pluginrpc_test.go
+    - linters:
       - gosec
       path: runner.go
     - linters:
