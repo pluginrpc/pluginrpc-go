@@ -24,10 +24,14 @@ import (
 )
 
 const (
+	// ProtocolFlagName is the name of the protocol bool flag.
+	ProtocolFlagName = "protocol"
+	// SpecFlagName is the name of the spec bool flag.
+	SpecFlagName = "spec"
+	// FormatFlagName is the name of the format string flag.
+	FormatFlagName = "format"
+
 	protocolVersion = 1
-	flagProtocol    = "protocol"
-	flagSpec        = "spec"
-	flagFormat      = "format"
 )
 
 type flags struct {
@@ -41,20 +45,20 @@ func parseFlags(output io.Writer, args []string) (*flags, []string, error) {
 	var formatString string
 	flagSet := pflag.NewFlagSet("plugin", pflag.ContinueOnError)
 	flagSet.SetOutput(output)
-	flagSet.BoolVar(&flags.printProtocol, flagProtocol, false, "Print the protocol to stdout and exit.")
-	flagSet.BoolVar(&flags.printSpec, flagSpec, false, "Print the spec to stdout in the specified format and exit.")
-	flagSet.StringVar(&formatString, flagFormat, formatBinaryString, fmt.Sprintf("The format to use for requests, responses, and specs. Must be one of [%q, %q].", formatBinaryString, formatJSONString))
+	flagSet.BoolVar(&flags.printProtocol, ProtocolFlagName, false, "Print the protocol to stdout and exit.")
+	flagSet.BoolVar(&flags.printSpec, SpecFlagName, false, "Print the spec to stdout in the specified format and exit.")
+	flagSet.StringVar(&formatString, FormatFlagName, formatBinaryString, fmt.Sprintf("The format to use for requests, responses, and specs. Must be one of [%q, %q].", formatBinaryString, formatJSONString))
 	if err := flagSet.Parse(args); err != nil {
 		return nil, nil, err
 	}
 	if flags.printProtocol && flags.printSpec {
-		return nil, nil, fmt.Errorf("cannot specify both --%s and --%s", flagProtocol, flagSpec)
+		return nil, nil, fmt.Errorf("cannot specify both --%s and --%s", ProtocolFlagName, SpecFlagName)
 	}
 	format := FormatBinary
 	if formatString != "" {
 		format = FormatForString(formatString)
 		if format == 0 {
-			return nil, nil, fmt.Errorf("invalid value for --%s: %q", flagFormat, formatString)
+			return nil, nil, fmt.Errorf("invalid value for --%s: %q", FormatFlagName, formatString)
 		}
 	}
 	if err := validateFormat(format); err != nil {

@@ -173,7 +173,7 @@ func (c *client) Call(
 	if len(args) == 0 {
 		args = []string{procedure.Path()}
 	}
-	args = append(args, "--"+flagFormat, c.format.String())
+	args = append(args, "--"+FormatFlagName, c.format.String())
 	if err := c.runner.Run(
 		ctx,
 		Env{
@@ -198,7 +198,7 @@ func (c *client) getSpecUncached(ctx context.Context) (Spec, error) {
 	if err := c.runner.Run(
 		ctx,
 		Env{
-			Args:   []string{"--" + flagSpec, "--" + flagFormat, c.format.String()},
+			Args:   []string{"--" + SpecFlagName, "--" + FormatFlagName, c.format.String()},
 			Stdout: stdout,
 			Stderr: c.stderr,
 		},
@@ -207,11 +207,11 @@ func (c *client) getSpecUncached(ctx context.Context) (Spec, error) {
 	}
 	data := stdout.Bytes()
 	if len(data) == 0 {
-		return nil, fmt.Errorf("--%s did not return a spec", flagSpec)
+		return nil, fmt.Errorf("--%s did not return a spec", SpecFlagName)
 	}
 	protoSpec := &pluginrpcv1.Spec{}
 	if err := unmarshalSpec(c.format, data, protoSpec); err != nil {
-		return nil, fmt.Errorf("--%s did not return a properly-formed spec: %w", flagSpec, err)
+		return nil, fmt.Errorf("--%s did not return a properly-formed spec: %w", SpecFlagName, err)
 	}
 	return NewSpecForProto(protoSpec)
 }
@@ -222,7 +222,7 @@ func (c *client) checkProtocolVersion(ctx context.Context) error {
 		return err
 	}
 	if version != protocolVersion {
-		return fmt.Errorf("--%s returned unknown protocol version %d", flagProtocol, version)
+		return fmt.Errorf("--%s returned unknown protocol version %d", ProtocolFlagName, version)
 	}
 	return nil
 }
@@ -232,7 +232,7 @@ func (c *client) getProtocolVersionUncached(ctx context.Context) (int, error) {
 	if err := c.runner.Run(
 		ctx,
 		Env{
-			Args:   []string{"--" + flagProtocol},
+			Args:   []string{"--" + ProtocolFlagName},
 			Stdout: stdout,
 			Stderr: c.stderr,
 		},
@@ -241,11 +241,11 @@ func (c *client) getProtocolVersionUncached(ctx context.Context) (int, error) {
 	}
 	data := stdout.Bytes()
 	if len(data) == 0 {
-		return 0, fmt.Errorf("--%s did not return a protocol version", flagProtocol)
+		return 0, fmt.Errorf("--%s did not return a protocol version", ProtocolFlagName)
 	}
 	version, err := unmarshalProtocol(data)
 	if err != nil {
-		return 0, fmt.Errorf("--%s did not return a properly-formed protocol version: %w", flagProtocol, err)
+		return 0, fmt.Errorf("--%s did not return a properly-formed protocol version: %w", ProtocolFlagName, err)
 	}
 	return version, nil
 }
