@@ -34,6 +34,12 @@ func main() {
 func newServer() (pluginrpc.Server, error) {
 	spec, err := examplev1pluginrpc.EchoServiceSpecBuilder{
 		// Note that EchoList does not have optional args and will default to path being the only arg.
+		//
+		// This means that the following commands will invoke their respective procedures:
+		//
+		//   example-plugin echo request
+		//   example-plugin /pluginrpc.example.v1.EchoService/EchoList
+		//   example-plugin echo error
 		EchoRequest: []pluginrpc.ProcedureOption{pluginrpc.ProcedureWithArgs("echo", "request")},
 		EchoError:   []pluginrpc.ProcedureOption{pluginrpc.ProcedureWithArgs("echo", "error")},
 	}.Build()

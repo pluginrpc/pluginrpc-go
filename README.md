@@ -21,14 +21,14 @@ For a full example, see the [internal/example](internal/example) directory. This
   package that contains an example Protobuf service `EchoService`.
 - [gen/pluginrpc/example/v1](internal/example/gen/pluginrpc/example/v1): The generated code
   from `protoc-gen-go` and `protoc-gen-pluginrpc-go` for the example Protobuf Package.
-- [pluginrpc-example-server](internal/example/cmd/pluginrpc-example-server): An implementation of a
+- [example-plugin](internal/example/cmd/example-plugin): An implementation of a
   PluginRPC plugin for `EchoService`.
-- [pluginrpc-example-client-request](internal/example/cmd/pluginrpc-example-client-request): A
-  simple client that calls the `EchoRequest` RPC via invoking `pluginrpc-example-server`.
-- [pluginrpc-example-client-list](internal/example/cmd/pluginrpc-example-client-request): A simple
-  client that calls the `EchoList` RPC via invoking `pluginrpc-example-server`.
-- [pluginrpc-example-client-error](internal/example/cmd/pluginrpc-example-client-error): A simple
-  client that calls the `EchoError` RPC via invoking `pluginrpc-example-server`.
+- [example-client-echo-request](internal/example/cmd/example-client-echo-request): A
+  simple client that calls the `EchoRequest` RPC via invoking `example-plugin`.
+- [example-client-echo-list](internal/example/cmd/example-client-echo-request): A simple
+  client that calls the `EchoList` RPC via invoking `example-plugin`.
+- [example-client-echo-error](internal/example/cmd/example-client-echo-error): A simple
+  client that calls the `EchoError` RPC via invoking `example-plugin`.
 
 ## Usage
 
@@ -64,7 +64,7 @@ plugins:
     opt: paths=source_relative
 ```
 
-Build your plugin. See [pluginrpc-example-server](internal/example/cmd/pluginrpc-example-server) for
+Build your plugin. See [example-plugin](internal/example/cmd/example-plugin) for
 a full example. Assuming you intend to expose the `EchoService` as a plugin, your code will look
 something like this:
 
@@ -76,6 +76,12 @@ func main() {
 func newServer() (pluginrpc.Server, error) {
 	spec, err := examplev1pluginrpc.EchoServiceSpecBuilder{
 		// Note that EchoList does not have optional args and will default to path being the only arg.
+		//
+		// This means that the following commands will invoke their respective procedures:
+		//
+		//   example-plugin echo request
+		//   example-plugin /pluginrpc.example.v1.EchoService/EchoList
+		//   example-plugin echo error
 		EchoRequest: []pluginrpc.ProcedureOption{pluginrpc.ProcedureWithArgs("echo", "request")},
 		EchoError:   []pluginrpc.ProcedureOption{pluginrpc.ProcedureWithArgs("echo", "error")},
 	}.Build()
@@ -104,11 +110,11 @@ func (echoServiceHandler) EchoError(_ context.Context, request *examplev1.EchoEr
 ```
 
 Invoke your plugin. You'll create a client that points to your plugin. See
-[pluginrpc-example-client-request](internal/example/cmd/pluginrpc-example-client-request) for a full
+[example-client-echo-request](internal/example/cmd/example-client-echo-request) for a full
 example. Invocation will look something like this:
 
 ```go
-client := pluginrpc.NewClient(pluginrpc.NewExecRunner("pluginrpc-example-server"))
+client := pluginrpc.NewClient(pluginrpc.NewExecRunner("example-plugin"))
 echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
 if err != nil {
     return err

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package main implements a client that calls the EchoRequest RPC on the
-// pluginrpc-example-server plugin.
+// example-plugin plugin.
 //
 // This will echo back any args given to this client.
 package main
@@ -38,7 +38,7 @@ func main() {
 }
 
 func run() error {
-	client := pluginrpc.NewClient(pluginrpc.NewExecRunner("pluginrpc-example-server"))
+	client := pluginrpc.NewClient(pluginrpc.NewExecRunner("example-plugin"))
 	echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
 	if err != nil {
 		return err

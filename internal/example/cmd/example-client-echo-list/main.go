@@ -12,22 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main implements a client that calls the EchoError RPC on the
-// pluginrpc-example-server plugin.
+// Package main implements a client that calls the EchoList RPC on the
+// example-plugin plugin.
 //
-// This will parse the first arg as an error Code, and all further args will
-// comprise the error message.
+// This will echo the list produded by EchoList.
 package main
 
 import (
 	"context"
 	"os"
-	"strconv"
 	"strings"
 
-	pluginrpcv1 "buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go/pluginrpc/v1"
 	"pluginrpc.com/pluginrpc"
-	examplev1 "pluginrpc.com/pluginrpc/internal/example/gen/pluginrpc/example/v1"
 	"pluginrpc.com/pluginrpc/internal/example/gen/pluginrpc/example/v1/examplev1pluginrpc"
 )
 
@@ -41,21 +37,15 @@ func main() {
 }
 
 func run() error {
-	client := pluginrpc.NewClient(pluginrpc.NewExecRunner("pluginrpc-example-server"))
+	client := pluginrpc.NewClient(pluginrpc.NewExecRunner("example-plugin"))
 	echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
 	if err != nil {
 		return err
 	}
-	code, err := strconv.ParseInt(os.Args[1], 10, 32)
+	response, err := echoServiceClient.EchoList(context.Background(), nil)
 	if err != nil {
 		return err
 	}
-	_, err = echoServiceClient.EchoError(
-		context.Background(),
-		&examplev1.EchoErrorRequest{
-			Code:    pluginrpcv1.Code(code),
-			Message: strings.Join(os.Args[2:], " "),
-		},
-	)
+	_, err = os.Stdout.Write([]byte(strings.Join(response.GetList(), "\n") + "\n"))
 	return err
 }
