@@ -7,7 +7,7 @@ MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 MAKEFLAGS += --no-print-directory
 BIN := .tmp/bin
-export PATH := $(BIN):$(PATH)
+export PATH := $(abspath $(BIN)):$(PATH)
 export GOBIN := $(abspath $(BIN))
 COPYRIGHT_YEARS := 2024
 LICENSE_IGNORE := --ignore /testdata/
@@ -32,7 +32,7 @@ clean: ## Delete intermediate build artifacts
 	git clean -Xdf
 
 .PHONY: test
-test: build ## Run unit tests
+test: build $(BIN)/example-plugin ## Run unit tests
 	go test -vet=off -race -cover ./...
 
 .PHONY: build
@@ -90,3 +90,8 @@ $(BIN)/protoc-gen-go: Makefile go.mod
 $(BIN)/protoc-gen-pluginrpc-go:
 	@mkdir -p $(@D)
 	go build -o $(@) ./cmd/protoc-gen-pluginrpc-go
+
+.PHONY: $(BIN)/example-plugin
+$(BIN)/example-plugin:
+	@mkdir -p $(@D)
+	go build -o $(@) ./internal/example/cmd/example-plugin

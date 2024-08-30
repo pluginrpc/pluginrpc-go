@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strconv"
 	"testing"
 
 	pluginrpcv1 "buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go/pluginrpc/v1"
@@ -27,113 +28,115 @@ import (
 	"pluginrpc.com/pluginrpc/internal/example/gen/pluginrpc/example/v1/examplev1pluginrpc"
 )
 
+const echoServicePluginProgramName = "example-plugin"
+
 // We want to append 0 so that we call pluginrpc.ClientWithFormat with the default Format.
 var allTestFormats = append(slices.Clone(pluginrpc.AllFormats), 0)
 
 func TestEchoRequest(t *testing.T) {
 	t.Parallel()
-	server, err := newServer()
-	require.NoError(t, err)
-	for _, format := range allTestFormats {
-		format := format
-		t.Run(
-			format.String(),
-			func(t *testing.T) {
-				t.Parallel()
-				echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(newClient(server, pluginrpc.ClientWithFormat(format)))
-				require.NoError(t, err)
-				response, err := echoServiceClient.EchoRequest(
-					context.Background(),
-					&examplev1.EchoRequestRequest{
-						Message: "hello",
-					},
-				)
-				require.NoError(t, err)
-				require.NotNil(t, response)
-				require.Equal(t, "hello", response.GetMessage())
-			},
-		)
-	}
+	forEachDimension(
+		t,
+		func(t *testing.T, client pluginrpc.Client) {
+			echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
+			require.NoError(t, err)
+			response, err := echoServiceClient.EchoRequest(
+				context.Background(),
+				&examplev1.EchoRequestRequest{
+					Message: "hello",
+				},
+			)
+			require.NoError(t, err)
+			require.NotNil(t, response)
+			require.Equal(t, "hello", response.GetMessage())
+		},
+	)
 }
 
 func TestEchoRequestNil(t *testing.T) {
 	t.Parallel()
-	server, err := newServer()
-	require.NoError(t, err)
-	for _, format := range allTestFormats {
-		format := format
-		t.Run(
-			format.String(),
-			func(t *testing.T) {
-				t.Parallel()
-				echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(newClient(server, pluginrpc.ClientWithFormat(format)))
-				require.NoError(t, err)
-				response, err := echoServiceClient.EchoRequest(
-					context.Background(),
-					nil,
-				)
-				require.NoError(t, err)
-				require.NotNil(t, response)
-				require.Equal(t, "", response.GetMessage())
-			},
-		)
-	}
+	forEachDimension(
+		t,
+		func(t *testing.T, client pluginrpc.Client) {
+			echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
+			require.NoError(t, err)
+			response, err := echoServiceClient.EchoRequest(context.Background(), nil)
+			require.NoError(t, err)
+			require.NotNil(t, response)
+			require.Equal(t, "", response.GetMessage())
+		},
+	)
 }
 
 func TestEchoList(t *testing.T) {
 	t.Parallel()
-	server, err := newServer()
-	require.NoError(t, err)
-	for _, format := range allTestFormats {
-		format := format
-		t.Run(
-			format.String(),
-			func(t *testing.T) {
-				t.Parallel()
-				echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(newClient(server, pluginrpc.ClientWithFormat(format)))
-				require.NoError(t, err)
-				response, err := echoServiceClient.EchoList(context.Background(), nil)
-				require.NoError(t, err)
-				require.NotNil(t, response)
-				require.Equal(t, []string{"foo", "bar"}, response.GetList())
-			},
-		)
-	}
+	forEachDimension(
+		t,
+		func(t *testing.T, client pluginrpc.Client) {
+			echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
+			require.NoError(t, err)
+			response, err := echoServiceClient.EchoList(context.Background(), nil)
+			require.NoError(t, err)
+			require.NotNil(t, response)
+			require.Equal(t, []string{"foo", "bar"}, response.GetList())
+		},
+	)
 }
 
 func TestEchoError(t *testing.T) {
 	t.Parallel()
-	server, err := newServer()
-	require.NoError(t, err)
+	forEachDimension(
+		t,
+		func(t *testing.T, client pluginrpc.Client) {
+			echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(client)
+			require.NoError(t, err)
+			_, err = echoServiceClient.EchoError(
+				context.Background(),
+				&examplev1.EchoErrorRequest{
+					Code:    pluginrpcv1.Code_CODE_DEADLINE_EXCEEDED,
+					Message: "hello",
+				},
+			)
+			pluginrpcError := &pluginrpc.Error{}
+			require.Error(t, err)
+			require.ErrorAs(t, err, &pluginrpcError)
+			require.Equal(t, pluginrpc.CodeDeadlineExceeded, pluginrpcError.Code())
+			unwrappedErr := pluginrpcError.Unwrap()
+			require.Error(t, unwrappedErr)
+			require.Equal(t, "hello", unwrappedErr.Error())
+		},
+	)
+}
+
+func forEachDimension(t *testing.T, f func(*testing.T, pluginrpc.Client)) {
 	for _, format := range allTestFormats {
-		format := format
-		t.Run(
-			format.String(),
-			func(t *testing.T) {
-				t.Parallel()
-				echoServiceClient, err := examplev1pluginrpc.NewEchoServiceClient(newClient(server, pluginrpc.ClientWithFormat(format)))
-				require.NoError(t, err)
-				_, err = echoServiceClient.EchoError(
-					context.Background(),
-					&examplev1.EchoErrorRequest{
-						Code:    pluginrpcv1.Code_CODE_DEADLINE_EXCEEDED,
-						Message: "hello",
-					},
-				)
-				pluginrpcError := &pluginrpc.Error{}
-				require.Error(t, err)
-				require.ErrorAs(t, err, &pluginrpcError)
-				require.Equal(t, pluginrpc.CodeDeadlineExceeded, pluginrpcError.Code())
-				unwrappedErr := pluginrpcError.Unwrap()
-				require.Error(t, unwrappedErr)
-				require.Equal(t, "hello", unwrappedErr.Error())
-			},
-		)
+		for j, newClient := range []func(...pluginrpc.ClientOption) (pluginrpc.Client, error){newExecRunnerClient, newServerRunnerClient} {
+			j := j
+			format := format
+			newClient := newClient
+			t.Run(
+				format.String()+strconv.Itoa(j),
+				func(t *testing.T) {
+					t.Parallel()
+					client, err := newClient(pluginrpc.ClientWithFormat(format))
+					require.NoError(t, err)
+					f(t, client)
+				},
+			)
+		}
 	}
 }
 
-func newClient(server pluginrpc.Server, clientOptions ...pluginrpc.ClientOption) pluginrpc.Client {
-	return pluginrpc.NewClient(pluginrpc.NewServerRunner(server), clientOptions...)
+func newExecRunnerClient(clientOptions ...pluginrpc.ClientOption) (pluginrpc.Client, error) {
+	return pluginrpc.NewClient(pluginrpc.NewExecRunner(echoServicePluginProgramName), clientOptions...), nil
+}
+
+func newServerRunnerClient(clientOptions ...pluginrpc.ClientOption) (pluginrpc.Client, error) {
+	server, err := newServer()
+	if err != nil {
+		return nil, err
+	}
+	return pluginrpc.NewClient(pluginrpc.NewServerRunner(server), clientOptions...), nil
 }
 
 func newServer() (pluginrpc.Server, error) {
