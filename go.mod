@@ -3,7 +3,7 @@ module pluginrpc.com/pluginrpc
 go 1.21
 
 require (
-	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.34.2-20240828201414-fe6866f2f15c.2
+	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.34.2-20240828222655-5345c0a56177.2
 	github.com/mattn/go-isatty v0.0.20
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
