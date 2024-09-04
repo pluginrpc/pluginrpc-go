@@ -13,9 +13,10 @@ COPYRIGHT_YEARS := 2024
 LICENSE_IGNORE := --ignore /testdata/
 
 BUF_VERSION := v1.39.0
+GO_MOD_GOTOOLCHAIN := go1.23.0
 GOLANGCI_LINT_VERSION := v1.60.1
 # https://github.com/golangci/golangci-lint/issues/4837
-GOLANGCI_LINT_GOTOOLCHAIN := go1.23.0
+GOLANGCI_LINT_GOTOOLCHAIN := $(GO_MOD_GOTOOLCHAIN)
 
 .PHONY: help
 help: ## Describe useful make targets
@@ -62,7 +63,9 @@ generate: $(BIN)/buf $(BIN)/protoc-gen-go $(BIN)/protoc-gen-pluginrpc-go $(BIN)/
 
 .PHONY: upgrade
 upgrade: ## Upgrade dependencies
-	go get -u -t ./... && go mod tidy -v
+	go mod edit -toolchain=$(GO_MOD_GOTOOLCHAIN)
+	go get -u -t ./...
+	go mod tidy -v
 
 .PHONY: checkgenerate
 checkgenerate:
