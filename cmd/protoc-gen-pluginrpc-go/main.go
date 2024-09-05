@@ -40,6 +40,10 @@ const (
 
 	usage = "Flags:\n  -h, --help\tPrint this help and exit.\n      --version\tPrint the version and exit."
 
+	optionStreamingKey        = "streaming"
+	optionStreamingValueError = "error"
+	optionStreamingValueWarn  = "warn"
+
 	commentWidth = 97 // leave room for "// "
 
 	// To propagate top-level comments, we need the field number of the syntax
@@ -61,32 +65,103 @@ func main() {
 		fmt.Fprintln(os.Stderr, usage)
 		os.Exit(1)
 	}
-	protogen.Options{}.Run(
+
+	flags := newFlags()
+	protogen.Options{
+		ParamFunc: flags.Set,
+	}.Run(
 		func(plugin *protogen.Plugin) error {
 			plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
-			for _, file := range plugin.Files {
-				if file.Generate {
-					if err := generate(plugin, file); err != nil {
-						return err
-					}
-				}
+			if err := validate(plugin, flags); err != nil {
+				return err
 			}
-			return nil
+			return generate(plugin)
 		},
 	)
 }
 
-func generate(plugin *protogen.Plugin, file *protogen.File) error {
-	if len(file.Services) == 0 {
-		return nil
-	}
+type flags struct {
+	errorOnStreaming bool
+}
 
-	for _, service := range file.Services {
-		for _, method := range service.Methods {
-			if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-				return fmt.Errorf("streaming methods not supported: %s/%s", service.Desc.Name(), method.Desc.Name())
+func newFlags() *flags {
+	return &flags{}
+}
+
+func (f *flags) Set(name string, value string) error {
+	switch name {
+	case optionStreamingKey:
+		switch value {
+		case optionStreamingValueError:
+			f.errorOnStreaming = true
+			return nil
+		case optionStreamingValueWarn:
+			return nil
+		default:
+			return fmt.Errorf("unknown value for parameter %q: %q", name, value)
+		}
+	default:
+		return fmt.Errorf("unknown parameter: %q", name)
+	}
+}
+
+func validate(plugin *protogen.Plugin, flags *flags) error {
+	var streamingMethods []*protogen.Method
+	for _, file := range plugin.Files {
+		if file.Generate {
+			for _, service := range file.Services {
+				for _, method := range service.Methods {
+					if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+						streamingMethods = append(streamingMethods, method)
+
+					}
+				}
 			}
 		}
+	}
+	if len(streamingMethods) == 0 {
+		return nil
+	}
+	streamingMethodStrings := make([]string, len(streamingMethods))
+	for i, streamingMethod := range streamingMethods {
+		streamingMethodStrings[i] = string(streamingMethod.Desc.FullName())
+	}
+	if flags.errorOnStreaming {
+		return fmt.Errorf("streaming methods are not supported: %s", strings.Join(streamingMethodStrings, ", "))
+	}
+
+	for i, streamingMethodString := range streamingMethodStrings {
+		streamingMethodStrings[i] = "  - " + streamingMethodString
+	}
+	_, err := fmt.Fprintf(
+		os.Stderr,
+		`Warning: streaming methods are not supported, these methods will be skipped and not part of generated interfaces:
+
+%s
+
+To error on streaming methods, set the parameter "%s=%s".
+`,
+		strings.Join(streamingMethodStrings, "\n"),
+		optionStreamingKey,
+		optionStreamingValueError,
+	)
+	return err
+}
+
+func generate(plugin *protogen.Plugin) error {
+	for _, file := range plugin.Files {
+		if file.Generate {
+			if err := generateFile(plugin, file); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func generateFile(plugin *protogen.Plugin, file *protogen.File) error {
+	if len(file.Services) == 0 {
+		return nil
 	}
 
 	file.GoPackageName += generatedPackageSuffix
