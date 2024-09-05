@@ -109,14 +109,7 @@ func validate(plugin *protogen.Plugin, flags *flags) error {
 	var streamingMethods []*protogen.Method
 	for _, file := range plugin.Files {
 		if file.Generate {
-			for _, service := range file.Services {
-				for _, method := range service.Methods {
-					if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
-						streamingMethods = append(streamingMethods, method)
-
-					}
-				}
-			}
+			streamingMethods = append(streamingMethods, getStreamingMethodsForFile(file)...)
 		}
 	}
 	if len(streamingMethods) == 0 {
@@ -160,7 +153,7 @@ func generate(plugin *protogen.Plugin) error {
 }
 
 func generateFile(plugin *protogen.Plugin, file *protogen.File) error {
-	if len(file.Services) == 0 {
+	if len(getUnaryMethodsForFile(file)) == 0 {
 		return nil
 	}
 
@@ -182,7 +175,7 @@ func generateFile(plugin *protogen.Plugin, file *protogen.File) error {
 	generatedFile.Import(file.GoImportPath)
 
 	generatePreamble(generatedFile, file)
-	generatePathConstants(generatedFile, file.Services)
+	generatePathConstants(generatedFile, file)
 	for _, service := range file.Services {
 		names := newNames(service)
 		generateSpecBuilder(generatedFile, service, names)
@@ -247,20 +240,26 @@ func generatePreamble(g *protogen.GeneratedFile, file *protogen.File) {
 	g.P()
 }
 
-func generatePathConstants(g *protogen.GeneratedFile, services []*protogen.Service) {
+func generatePathConstants(g *protogen.GeneratedFile, file *protogen.File) {
+	unaryMethods := getUnaryMethodsForFile(file)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	g.P("const (")
-	for _, service := range services {
-		for _, method := range service.Methods {
-			wrapComments(g, pathConstName(method), " is the path of the ",
-				service.Desc.Name(), "'s ", method.Desc.Name(), " RPC.")
-			g.P(pathConstName(method), ` = "`, fmt.Sprintf("/%s/%s", service.Desc.FullName(), method.Desc.Name()), `"`)
-		}
+	for _, method := range unaryMethods {
+		wrapComments(g, pathConstName(method), " is the path of the ",
+			method.Parent.Desc.Name(), "'s ", method.Desc.Name(), " RPC.")
+		g.P(pathConstName(method), ` = "`, fmt.Sprintf("/%s/%s", method.Parent.Desc.FullName(), method.Desc.Name()), `"`)
 	}
 	g.P(")")
 	g.P()
 }
 
 func generateSpecBuilder(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.SpecBuilder, " builds a Spec for the ", service.Desc.FullName(), " service.")
 	if isDeprecatedService(service) {
 		g.P("//")
@@ -268,15 +267,15 @@ func generateSpecBuilder(g *protogen.GeneratedFile, service *protogen.Service, n
 	}
 	g.AnnotateSymbol(names.SpecBuilder, protogen.Annotation{Location: service.Location})
 	g.P("type ", names.SpecBuilder, " struct {")
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		g.P(method.GoName, " []", pluginrpcPackage.Ident("ProcedureOption"))
 	}
 	g.P("}")
 	g.P()
 	wrapComments(g, "Build builds a Spec for the ", service.Desc.FullName(), " service.")
 	g.P("func (s ", names.SpecBuilder, ") Build() (", pluginrpcPackage.Ident("Spec"), ", error) {")
-	g.P("procedures := make([]", pluginrpcPackage.Ident("Procedure"), ", 0, ", len(service.Methods), ")")
-	for i, method := range service.Methods {
+	g.P("procedures := make([]", pluginrpcPackage.Ident("Procedure"), ", 0, ", len(unaryMethods), ")")
+	for i, method := range unaryMethods {
 		equals := "="
 		if i == 0 {
 			equals = ":="
@@ -292,6 +291,10 @@ func generateSpecBuilder(g *protogen.GeneratedFile, service *protogen.Service, n
 	g.P()
 }
 func generateClientInterface(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.Client, " is a client for the ", service.Desc.FullName(), " service.")
 	if isDeprecatedService(service) {
 		g.P("//")
@@ -299,7 +302,7 @@ func generateClientInterface(g *protogen.GeneratedFile, service *protogen.Servic
 	}
 	g.AnnotateSymbol(names.Client, protogen.Annotation{Location: service.Location})
 	g.P("type ", names.Client, " interface {")
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		g.AnnotateSymbol(names.Client+"."+method.GoName, protogen.Annotation{Location: method.Location})
 		leadingComments(
 			g,
@@ -313,6 +316,10 @@ func generateClientInterface(g *protogen.GeneratedFile, service *protogen.Servic
 }
 
 func generateClientConstructor(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	// Client constructor.
 	wrapComments(g, names.ClientConstructor, " constructs a client for the ", service.Desc.FullName(), " service.")
 	g.P("//")
@@ -330,13 +337,17 @@ func generateClientConstructor(g *protogen.GeneratedFile, service *protogen.Serv
 }
 
 func generateClientImplementation(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	// Client struct.
 	wrapComments(g, names.ClientImpl, " implements ", names.Client, ".")
 	g.P("type ", names.ClientImpl, " struct {")
 	g.P("client ", pluginrpcPackage.Ident("Client"))
 	g.P("}")
 	g.P()
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		generateClientMethod(g, method, names)
 	}
 }
@@ -359,6 +370,10 @@ func generateClientMethod(g *protogen.GeneratedFile, method *protogen.Method, na
 }
 
 func generateHandlerInterface(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.Handler, " is an implementation of the ", service.Desc.FullName(), " service.")
 	if isDeprecatedService(service) {
 		g.P("//")
@@ -366,7 +381,7 @@ func generateHandlerInterface(g *protogen.GeneratedFile, service *protogen.Servi
 	}
 	g.AnnotateSymbol(names.Handler, protogen.Annotation{Location: service.Location})
 	g.P("type ", names.Handler, " interface {")
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		leadingComments(
 			g,
 			method.Comments.Leading,
@@ -380,6 +395,10 @@ func generateHandlerInterface(g *protogen.GeneratedFile, service *protogen.Servi
 }
 
 func generateServerInterface(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.Server, " serves the ", service.Desc.FullName(), " service.")
 	if isDeprecatedService(service) {
 		g.P("//")
@@ -387,7 +406,7 @@ func generateServerInterface(g *protogen.GeneratedFile, service *protogen.Servic
 	}
 	g.AnnotateSymbol(names.Server, protogen.Annotation{Location: service.Location})
 	g.P("type ", names.Server, " interface {")
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		leadingComments(
 			g,
 			method.Comments.Leading,
@@ -401,6 +420,10 @@ func generateServerInterface(g *protogen.GeneratedFile, service *protogen.Servic
 }
 
 func generateServerConstructor(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.ServerConstructor, " constructs a server for the ", service.Desc.FullName(), " service.")
 	g.P("//")
 	if isDeprecatedService(service) {
@@ -418,6 +441,10 @@ func generateServerConstructor(g *protogen.GeneratedFile, service *protogen.Serv
 }
 
 func generateServerRegister(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.ServerRegister, " registers the server for the ", service.Desc.FullName(), " service.")
 	g.P("//")
 	if isDeprecatedService(service) {
@@ -426,7 +453,7 @@ func generateServerRegister(g *protogen.GeneratedFile, service *protogen.Service
 	}
 	g.P("func ", names.ServerRegister, " (serverRegistrar ", pluginrpcPackage.Ident("ServerRegistrar"),
 		", ", unexport(names.Server), " ", names.Server, ") {")
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		g.P("serverRegistrar.Register(", pathConstName(method), ", ", unexport(names.Server), ".", method.GoName, ")")
 	}
 	g.P("}")
@@ -434,13 +461,17 @@ func generateServerRegister(g *protogen.GeneratedFile, service *protogen.Service
 }
 
 func generateServerImplementation(g *protogen.GeneratedFile, service *protogen.Service, names names) {
+	unaryMethods := getUnaryMethodsForService(service)
+	if len(unaryMethods) == 0 {
+		return
+	}
 	wrapComments(g, names.ServerImpl, " implements ", names.Server, ".")
 	g.P("type ", names.ServerImpl, " struct {")
 	g.P("handler ", pluginrpcPackage.Ident("Handler"))
 	g.P(unexport(names.Handler), " ", names.Handler)
 	g.P("}")
 	g.P()
-	for _, method := range service.Methods {
+	for _, method := range unaryMethods {
 		generateServerMethod(g, method, names)
 	}
 }
@@ -535,6 +566,46 @@ func isDeprecatedService(service *protogen.Service) bool {
 func isDeprecatedMethod(method *protogen.Method) bool {
 	methodOptions, ok := method.Desc.Options().(*descriptorpb.MethodOptions)
 	return ok && methodOptions.GetDeprecated()
+}
+
+func getUnaryMethodsForFile(file *protogen.File) []*protogen.Method {
+	var methods []*protogen.Method
+	for _, service := range file.Services {
+		methods = append(methods, getUnaryMethodsForService(service)...)
+	}
+	return methods
+}
+
+func getUnaryMethodsForService(service *protogen.Service) []*protogen.Method {
+	var methods []*protogen.Method
+	for _, method := range service.Methods {
+		if isUnaryMethod(method) {
+			methods = append(methods, method)
+		}
+	}
+	return methods
+}
+
+func getStreamingMethodsForFile(file *protogen.File) []*protogen.Method {
+	var methods []*protogen.Method
+	for _, service := range file.Services {
+		methods = append(methods, getStreamingMethodsForService(service)...)
+	}
+	return methods
+}
+
+func getStreamingMethodsForService(service *protogen.Service) []*protogen.Method {
+	var methods []*protogen.Method
+	for _, method := range service.Methods {
+		if !isUnaryMethod(method) {
+			methods = append(methods, method)
+		}
+	}
+	return methods
+}
+
+func isUnaryMethod(method *protogen.Method) bool {
+	return !(method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer())
 }
 
 // Raggedy comments in the generated code are driving me insane. This
