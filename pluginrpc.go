@@ -17,7 +17,7 @@ package pluginrpc // import "pluginrpc.com/pluginrpc"
 
 const (
 	// Version is the semantic version of the pluginrpc module.
-	Version = "0.3.0-dev"
+	Version = "0.3.0"
 
 	// IsAtLeastVersion0_1_0 is used in compile-time handshake's with pluginrpc's generated code.
 	IsAtLeastVersion0_1_0 = true
