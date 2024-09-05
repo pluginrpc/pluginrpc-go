@@ -7,28 +7,28 @@
 
 The Golang library for [PluginRPC](https://github.com/pluginrpc/pluginrpc).
 
-The [pluginrpc.com/pluginrpc](https://pkg.go.dev/pluginrpc.com/pluginrpc) library
-provides all the primitives necessary to operate with the PluginRPC ecosystem. The
-`protoc-gen-pluginrpc-go` plugin generates stubs for Protobuf services to work with PluginRPC. It
-makes authoring and consuming plugins based on Protobuf services incredibly simple.
+The [pluginrpc.com/pluginrpc](https://pkg.go.dev/pluginrpc.com/pluginrpc) library provides all the
+primitives necessary to operate with the PluginRPC ecosystem. The `protoc-gen-pluginrpc-go` plugin
+generates stubs for Protobuf services to work with PluginRPC. It makes authoring and consuming
+plugins based on Protobuf services incredibly simple.
 
 For more on the motivation behind PluginRPC, see the
 [github.com/pluginrpc/pluginrpc](https://github.com/pluginrpc/pluginrpc) documentation.
 
 For a full example, see the [internal/example](internal/example) directory. This contains:
 
-- [proto/pluginrpc/example/v1](internal/example/proto/pluginrpc/example/v1): An Protobuf
-  package that contains an example Protobuf service `EchoService`.
-- [gen/pluginrpc/example/v1](internal/example/gen/pluginrpc/example/v1): The generated code
-  from `protoc-gen-go` and `protoc-gen-pluginrpc-go` for the example Protobuf Package.
-- [echo-plugin](internal/example/cmd/echo-plugin): An implementation of a
-  PluginRPC plugin for `EchoService`.
-- [echo-request-client](internal/example/cmd/echo-request-client): A
-  simple client that calls the `EchoRequest` RPC via invoking `echo-plugin`.
-- [echo-list-client](internal/example/cmd/echo-request-client): A simple
-  client that calls the `EchoList` RPC via invoking `echo-plugin`.
-- [echo-error-client](internal/example/cmd/echo-error-client): A simple
-  client that calls the `EchoError` RPC via invoking `echo-plugin`.
+- [proto/pluginrpc/example/v1](internal/example/proto/pluginrpc/example/v1): An Protobuf package
+  that contains an example Protobuf service `EchoService`.
+- [gen/pluginrpc/example/v1](internal/example/gen/pluginrpc/example/v1): The generated code from
+  `protoc-gen-go` and `protoc-gen-pluginrpc-go` for the example Protobuf Package.
+- [echo-plugin](internal/example/cmd/echo-plugin): An implementation of a PluginRPC plugin for
+  `EchoService`.
+- [echo-request-client](internal/example/cmd/echo-request-client): A simple client that calls the
+  `EchoRequest` RPC via invoking `echo-plugin`.
+- [echo-list-client](internal/example/cmd/echo-request-client): A simple client that calls the
+  `EchoList` RPC via invoking `echo-plugin`.
+- [echo-error-client](internal/example/cmd/echo-error-client): A simple client that calls the
+  `EchoError` RPC via invoking `echo-plugin`.
 
 ## Usage
 
@@ -64,9 +64,8 @@ plugins:
     opt: paths=source_relative
 ```
 
-Build your plugin. See [echo-plugin](internal/example/cmd/echo-plugin) for
-a full example. Assuming you intend to expose the `EchoService` as a plugin, your code will look
-something like this:
+Build your plugin. See [echo-plugin](internal/example/cmd/echo-plugin) for a full example. Assuming
+you intend to expose the `EchoService` as a plugin, your code will look something like this:
 
 ```go
 func main() {
@@ -110,8 +109,8 @@ func (echoServiceHandler) EchoError(_ context.Context, request *examplev1.EchoEr
 ```
 
 Invoke your plugin. You'll create a client that points to your plugin. See
-[echo-request-client](internal/example/cmd/echo-request-client) for a full
-example. Invocation will look something like this:
+[echo-request-client](internal/example/cmd/echo-request-client) for a full example. Invocation will
+look something like this:
 
 ```go
 client := pluginrpc.NewClient(pluginrpc.NewExecRunner("echo-plugin"))
@@ -128,6 +127,30 @@ response, err := echoServiceClient.EchoRequest(
 ```
 
 See [pluginrpc_test.go](pluginrpc_test.go) for an example of how to test plugins.
+
+## Plugin Options
+
+The `protoc-gen-pluginrpc-go` has an option `streaming` that specifies how to handle streaming RPCs.
+PluginRPC does not support streaming methods. There are three valid values for `streaming`: `error`,
+`warn`, `ignore`. The default is `warn`:
+
+- `streaming=error`: The plugin will error if a streaming method is encountered.
+- `streaming=warn`: The plugin will produce a warning to stderr if a streaming method is
+  encountered.
+- `streaming=ignore`: The plugin will ignore streaming methods and not produce a warning.
+
+In the case of `warn` or `ignore`, streaming RPCs will be skipped and no functions will be generated
+for them. If a service only has streaming RPCs, no interfaces will be generated for this service. If
+a file only has services with only streaming RPCs, no file will be generated.
+
+Additionally, `protoc-gen-pluginrpc-go has all the
+[standard Go plugin options](https://pkg.go.dev/google.golang.org/protobuf@v1.34.2/compiler/protogen):
+
+- `module=<module>`
+- `paths={import,source_relative}`
+- `annotate_code={true,false}`
+- `M<file>=<package>`
+
 
 ## Status: Beta
 

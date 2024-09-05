@@ -40,9 +40,10 @@ const (
 
 	usage = "Flags:\n  -h, --help\tPrint this help and exit.\n      --version\tPrint the version and exit."
 
-	optionStreamingKey        = "streaming"
-	optionStreamingValueError = "error"
-	optionStreamingValueWarn  = "warn"
+	optionStreamingKey         = "streaming"
+	optionStreamingValueError  = "error"
+	optionStreamingValueWarn   = "warn"
+	optionStreamingValueIgnore = "ignore"
 
 	commentWidth = 97 // leave room for "// "
 
@@ -81,7 +82,7 @@ func main() {
 }
 
 type flags struct {
-	errorOnStreaming bool
+	streaming string
 }
 
 func newFlags() *flags {
@@ -92,10 +93,8 @@ func (f *flags) Set(name string, value string) error {
 	switch name {
 	case optionStreamingKey:
 		switch value {
-		case optionStreamingValueError:
-			f.errorOnStreaming = true
-			return nil
-		case optionStreamingValueWarn:
+		case optionStreamingValueError, optionStreamingValueWarn, optionStreamingValueIgnore:
+			f.streaming = value
 			return nil
 		default:
 			return fmt.Errorf("unknown value for parameter %q: %q", name, value)
@@ -106,6 +105,19 @@ func (f *flags) Set(name string, value string) error {
 }
 
 func validate(plugin *protogen.Plugin, flags *flags) error {
+	var streamingError bool
+	switch flags.streaming {
+	case optionStreamingValueError:
+		streamingError = true
+	case "", optionStreamingValueWarn:
+	case optionStreamingValueIgnore:
+		// Ignore, no validation to do at this time since we only validate streaming.
+		return nil
+	default:
+		// This should never happen.
+		return fmt.Errorf("unknown value for parameter %q after parsing: %q", optionStreamingKey, flags.streaming)
+	}
+
 	var streamingMethods []*protogen.Method
 	for _, file := range plugin.Files {
 		if file.Generate {
@@ -119,10 +131,12 @@ func validate(plugin *protogen.Plugin, flags *flags) error {
 	for i, streamingMethod := range streamingMethods {
 		streamingMethodStrings[i] = string(streamingMethod.Desc.FullName())
 	}
-	if flags.errorOnStreaming {
+	if streamingError {
+		// optionStreamingValueError
 		return fmt.Errorf("streaming methods are not supported: %s", strings.Join(streamingMethodStrings, ", "))
 	}
 
+	// We're now in optionStreamingValueWarn territory.
 	for i, streamingMethodString := range streamingMethodStrings {
 		streamingMethodStrings[i] = "  - " + streamingMethodString
 	}
