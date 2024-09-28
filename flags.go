@@ -90,6 +90,7 @@ func getFlagUsage(flagSet *pflag.FlagSet, spec Spec, doc string) string {
 	}
 	_, _ = sb.WriteString("\nFlags:\n\n")
 	_, _ = sb.WriteString(flagSet.FlagUsagesWrapped(flagWrapping))
+	_, _ = sb.WriteString("  -h, --help            Show this help.\n")
 	return sb.String()
 }
 
