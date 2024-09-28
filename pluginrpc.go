@@ -21,4 +21,6 @@ const (
 
 	// IsAtLeastVersion0_1_0 is used in compile-time handshake's with pluginrpc's generated code.
 	IsAtLeastVersion0_1_0 = true
+	// IsAtLeastVersion0_4_0 is used in compile-time handshake's with pluginrpc's generated code.
+	IsAtLeastVersion0_4_0 = true
 )

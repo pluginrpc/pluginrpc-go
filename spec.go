@@ -15,9 +15,7 @@
 package pluginrpc
 
 import (
-	"fmt"
 	"slices"
-	"strings"
 
 	pluginrpcv1 "buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go/pluginrpc/v1"
 )
@@ -40,7 +38,7 @@ type Spec interface {
 }
 
 // NewSpec returns a new validated Spec for the given Procedures.
-func NewSpec(procedures []Procedure) (Spec, error) {
+func NewSpec(procedures ...Procedure) (Spec, error) {
 	return newSpec(procedures)
 }
 
@@ -54,7 +52,7 @@ func NewSpecForProto(protoSpec *pluginrpcv1.Spec) (Spec, error) {
 		}
 		procedures[i] = procedure
 	}
-	return NewSpec(procedures)
+	return NewSpec(procedures...)
 }
 
 // NewProtoSpec returns a new pluginrpcv1.Spec for the given Spec.
@@ -69,6 +67,17 @@ func NewProtoSpec(spec Spec) *pluginrpcv1.Spec {
 	}
 }
 
+// MergeSpecs merges the given Specs.
+//
+// Returns error if any Procedures overlap by Path or Args.
+func MergeSpecs(specs ...Spec) (Spec, error) {
+	var procedures []Procedure
+	for _, spec := range specs {
+		procedures = append(procedures, spec.Procedures()...)
+	}
+	return NewSpec(procedures...)
+}
+
 // *** PRIVATE ***
 
 type spec struct {
@@ -77,7 +86,7 @@ type spec struct {
 }
 
 func newSpec(procedures []Procedure) (*spec, error) {
-	if err := validateSpecProcedures(procedures); err != nil {
+	if err := validateProcedures(procedures); err != nil {
 		return nil, err
 	}
 	pathToProcedure := make(map[string]Procedure)
@@ -99,26 +108,3 @@ func (s *spec) Procedures() []Procedure {
 }
 
 func (*spec) isSpec() {}
-
-func validateSpecProcedures(procedures []Procedure) error {
-	usedPathMap := make(map[string]struct{})
-	usedArgsMap := make(map[string]struct{})
-	for _, procedure := range procedures {
-		path := procedure.Path()
-		if _, ok := usedPathMap[path]; ok {
-			return fmt.Errorf("duplicate procedure path: %q", path)
-		}
-		usedPathMap[path] = struct{}{}
-		args := procedure.Args()
-		if len(args) > 0 {
-			// We can do this given that we have a valid Spec where
-			// args do not contain spaces.
-			joinedArgs := strings.Join(args, " ")
-			if _, ok := usedArgsMap[joinedArgs]; ok {
-				return fmt.Errorf("duplicate procedure args: %q", joinedArgs)
-			}
-			usedArgsMap[joinedArgs] = struct{}{}
-		}
-	}
-	return nil
-}

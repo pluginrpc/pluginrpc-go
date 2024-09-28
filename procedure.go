@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strings"
 
 	pluginrpcv1 "buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go/pluginrpc/v1"
 )
@@ -113,6 +114,29 @@ type procedureOptions struct {
 
 func newProcedureOptions() *procedureOptions {
 	return &procedureOptions{}
+}
+
+func validateProcedures(procedures []Procedure) error {
+	usedPathMap := make(map[string]struct{})
+	usedArgsMap := make(map[string]struct{})
+	for _, procedure := range procedures {
+		path := procedure.Path()
+		if _, ok := usedPathMap[path]; ok {
+			return fmt.Errorf("duplicate procedure path: %q", path)
+		}
+		usedPathMap[path] = struct{}{}
+		args := procedure.Args()
+		if len(args) > 0 {
+			// We can do this given that we have a valid Spec where
+			// args do not contain spaces.
+			joinedArgs := strings.Join(args, " ")
+			if _, ok := usedArgsMap[joinedArgs]; ok {
+				return fmt.Errorf("duplicate procedure args: %q", joinedArgs)
+			}
+			usedArgsMap[joinedArgs] = struct{}{}
+		}
+	}
+	return nil
 }
 
 func validateProcedure(procedure *procedure) error {

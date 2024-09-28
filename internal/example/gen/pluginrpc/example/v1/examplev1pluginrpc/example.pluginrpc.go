@@ -66,7 +66,7 @@ func (s EchoServiceSpecBuilder) Build() (pluginrpc.Spec, error) {
 		return nil, err
 	}
 	procedures = append(procedures, procedure)
-	return pluginrpc.NewSpec(procedures)
+	return pluginrpc.NewSpec(procedures...)
 }
 
 // EchoServiceClient is a client for the pluginrpc.example.v1.EchoService service.
