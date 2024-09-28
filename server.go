@@ -40,21 +40,35 @@ type Server interface {
 //
 // Once passed to this constructor, the ServerRegistrar can no longer have new
 // paths registered to it.
-func NewServer(spec Spec, serverRegistrar ServerRegistrar, _ ...ServerOption) (Server, error) {
-	return newServer(spec, serverRegistrar)
+func NewServer(spec Spec, serverRegistrar ServerRegistrar, options ...ServerOption) (Server, error) {
+	return newServer(spec, serverRegistrar, options...)
 }
 
 // ServerOption is an option for a new Server.
 type ServerOption func(*serverOptions)
+
+// ServerWithDoc will attach the given documentation to the server.
+//
+// This will add ths given docs as a prefix when the flag -h/--help is used.
+func ServerWithDoc(doc string) ServerOption {
+	return func(serverOptions *serverOptions) {
+		serverOptions.doc = doc
+	}
+}
 
 // *** PRIVATE ***
 
 type server struct {
 	spec             Spec
 	pathToHandleFunc map[string]func(context.Context, HandleEnv, ...HandleOption) error
+	doc              string
 }
 
-func newServer(spec Spec, serverRegistrar ServerRegistrar) (*server, error) {
+func newServer(spec Spec, serverRegistrar ServerRegistrar, options ...ServerOption) (*server, error) {
+	serverOptions := newServerOptions()
+	for _, option := range options {
+		option(serverOptions)
+	}
 	pathToHandleFunc, err := serverRegistrar.pathToHandleFunc()
 	if err != nil {
 		return nil, err
@@ -72,11 +86,12 @@ func newServer(spec Spec, serverRegistrar ServerRegistrar) (*server, error) {
 	return &server{
 		spec:             spec,
 		pathToHandleFunc: pathToHandleFunc,
+		doc:              serverOptions.doc,
 	}, nil
 }
 
 func (s *server) Serve(ctx context.Context, env Env) error {
-	flags, args, err := parseFlags(env.Stderr, env.Args)
+	flags, args, err := parseFlags(env.Stderr, env.Args, s.spec, s.doc)
 	if err != nil {
 		if errors.Is(err, pflag.ErrHelp) {
 			return nil
@@ -111,4 +126,10 @@ func (s *server) Serve(ctx context.Context, env Env) error {
 
 func (*server) isServer() {}
 
-type serverOptions struct{}
+type serverOptions struct {
+	doc string
+}
+
+func newServerOptions() *serverOptions {
+	return &serverOptions{}
+}
