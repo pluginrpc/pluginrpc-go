@@ -125,7 +125,6 @@ func TestUnimplemented(t *testing.T) {
 			require.Equal(t, pluginrpc.CodeUnimplemented, pluginrpcError.Code())
 		},
 	)
-
 }
 
 func forEachDimension(t *testing.T, f func(*testing.T, pluginrpc.Client)) {
