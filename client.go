@@ -161,7 +161,7 @@ func (c *client) Call(
 	}
 	procedure := spec.ProcedureForPath(procedurePath)
 	if procedure == nil {
-		return fmt.Errorf("no procedure for path %q", procedurePath)
+		return NewErrorf(CodeUnimplemented, "procedure unimplemented: %q", procedurePath)
 	}
 	data, err := marshalRequest(c.format, request)
 	if err != nil {

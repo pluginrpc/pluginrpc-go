@@ -108,6 +108,26 @@ func TestEchoError(t *testing.T) {
 	)
 }
 
+func TestUnimplemented(t *testing.T) {
+	t.Parallel()
+	forEachDimension(
+		t,
+		func(t *testing.T, client pluginrpc.Client) {
+			err := client.Call(
+				context.Background(),
+				"/foo/bar",
+				nil,
+				nil,
+			)
+			pluginrpcError := &pluginrpc.Error{}
+			require.Error(t, err)
+			require.ErrorAs(t, err, &pluginrpcError)
+			require.Equal(t, pluginrpc.CodeUnimplemented, pluginrpcError.Code())
+		},
+	)
+
+}
+
 func forEachDimension(t *testing.T, f func(*testing.T, pluginrpc.Client)) {
 	for _, format := range allTestFormats {
 		for j, newClient := range []func(...pluginrpc.ClientOption) (pluginrpc.Client, error){newExecRunnerClient, newServerRunnerClient} {
