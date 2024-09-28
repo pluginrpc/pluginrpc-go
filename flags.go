@@ -17,6 +17,7 @@ package pluginrpc
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -79,13 +80,20 @@ func getFlagUsage(flagSet *pflag.FlagSet, spec Spec, doc string) string {
 		_, _ = sb.WriteString("\n\n")
 	}
 	_, _ = sb.WriteString("Commands:\n\n")
+	var argBasedProcedureStrings []string
+	var pathBasedProcedureStrings []string
 	for _, procedure := range spec.Procedures() {
-		_, _ = sb.WriteString("  ")
 		if args := procedure.Args(); len(args) > 0 {
-			_, _ = sb.WriteString(strings.Join(args, " "))
+			argBasedProcedureStrings = append(argBasedProcedureStrings, strings.Join(args, " "))
 		} else {
-			_, _ = sb.WriteString(procedure.Path())
+			pathBasedProcedureStrings = append(pathBasedProcedureStrings, procedure.Path())
 		}
+	}
+	sort.Strings(argBasedProcedureStrings)
+	sort.Strings(pathBasedProcedureStrings)
+	for _, procedureString := range append(argBasedProcedureStrings, pathBasedProcedureStrings...) {
+		_, _ = sb.WriteString("  ")
+		_, _ = sb.WriteString(procedureString)
 		_, _ = sb.WriteString("\n")
 	}
 	_, _ = sb.WriteString("\nFlags:\n\n")
