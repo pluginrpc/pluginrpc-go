@@ -49,7 +49,11 @@ func newServer() (pluginrpc.Server, error) {
 	serverRegistrar := pluginrpc.NewServerRegistrar()
 	echoServiceServer := examplev1pluginrpc.NewEchoServiceServer(pluginrpc.NewHandler(spec), echoServiceHandler{})
 	examplev1pluginrpc.RegisterEchoServiceServer(serverRegistrar, echoServiceServer)
-	return pluginrpc.NewServer(spec, serverRegistrar)
+	return pluginrpc.NewServer(
+		spec,
+		serverRegistrar,
+		pluginrpc.ServerWithDoc("An example plugin that implements the EchoService."),
+	)
 }
 
 type echoServiceHandler struct{}

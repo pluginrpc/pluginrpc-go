@@ -17,6 +17,7 @@ package pluginrpc
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,7 @@ const (
 	FormatFlagName = "format"
 
 	protocolVersion = 1
+	flagWrapping    = 140
 )
 
 type flags struct {
@@ -40,10 +42,13 @@ type flags struct {
 	format        Format
 }
 
-func parseFlags(output io.Writer, args []string) (*flags, []string, error) {
+func parseFlags(output io.Writer, args []string, spec Spec, doc string) (*flags, []string, error) {
 	flags := &flags{}
 	var formatString string
 	flagSet := pflag.NewFlagSet("plugin", pflag.ContinueOnError)
+	flagSet.Usage = func() {
+		_, _ = fmt.Fprint(output, getFlagUsage(flagSet, spec, doc))
+	}
 	flagSet.SetOutput(output)
 	flagSet.BoolVar(&flags.printProtocol, ProtocolFlagName, false, "Print the protocol to stdout and exit.")
 	flagSet.BoolVar(&flags.printSpec, SpecFlagName, false, "Print the spec to stdout in the specified format and exit.")
@@ -66,6 +71,35 @@ func parseFlags(output io.Writer, args []string) (*flags, []string, error) {
 	}
 	flags.format = format
 	return flags, flagSet.Args(), nil
+}
+
+func getFlagUsage(flagSet *pflag.FlagSet, spec Spec, doc string) string {
+	var sb strings.Builder
+	if doc != "" {
+		_, _ = sb.WriteString(doc)
+		_, _ = sb.WriteString("\n\n")
+	}
+	_, _ = sb.WriteString("Commands:\n\n")
+	var argBasedProcedureStrings []string
+	var pathBasedProcedureStrings []string
+	for _, procedure := range spec.Procedures() {
+		if args := procedure.Args(); len(args) > 0 {
+			argBasedProcedureStrings = append(argBasedProcedureStrings, strings.Join(args, " "))
+		} else {
+			pathBasedProcedureStrings = append(pathBasedProcedureStrings, procedure.Path())
+		}
+	}
+	sort.Strings(argBasedProcedureStrings)
+	sort.Strings(pathBasedProcedureStrings)
+	for _, procedureString := range append(argBasedProcedureStrings, pathBasedProcedureStrings...) {
+		_, _ = sb.WriteString("  ")
+		_, _ = sb.WriteString(procedureString)
+		_, _ = sb.WriteString("\n")
+	}
+	_, _ = sb.WriteString("\nFlags:\n\n")
+	_, _ = sb.WriteString(flagSet.FlagUsagesWrapped(flagWrapping))
+	_, _ = sb.WriteString("  -h, --help            Show this help.\n")
+	return sb.String()
 }
 
 func marshalProtocol(value int) []byte {
