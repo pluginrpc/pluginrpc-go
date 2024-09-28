@@ -300,7 +300,7 @@ func generateSpecBuilder(g *protogen.GeneratedFile, service *protogen.Service, n
 		g.P("}")
 		g.P("procedures = append(procedures, procedure)")
 	}
-	g.P("return ", pluginrpcPackage.Ident("NewSpec"), "(procedures)")
+	g.P("return ", pluginrpcPackage.Ident("NewSpec"), "(procedures...)")
 	g.P("}")
 	g.P()
 }
