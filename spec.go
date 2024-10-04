@@ -15,6 +15,7 @@
 package pluginrpc
 
 import (
+	"errors"
 	"slices"
 
 	pluginrpcv1 "buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go/pluginrpc/v1"
@@ -32,6 +33,8 @@ type Spec interface {
 	// If no such procedure exists, this returns nil.
 	ProcedureForPath(path string) Procedure
 	// Procedures returns all Procedures.
+	//
+	// Never empty.
 	Procedures() []Procedure
 
 	isSpec()
@@ -69,10 +72,16 @@ func NewProtoSpec(spec Spec) *pluginrpcv1.Spec {
 
 // MergeSpecs merges the given Specs.
 //
+// Input Specs can be nil. If all input Specs are nil, an error is returned
+// as Specs must have at least one Procedure..
+//
 // Returns error if any Procedures overlap by Path or Args.
 func MergeSpecs(specs ...Spec) (Spec, error) {
 	var procedures []Procedure
 	for _, spec := range specs {
+		if spec == nil {
+			continue
+		}
 		procedures = append(procedures, spec.Procedures()...)
 	}
 	return NewSpec(procedures...)
@@ -86,6 +95,9 @@ type spec struct {
 }
 
 func newSpec(procedures []Procedure) (*spec, error) {
+	if len(procedures) == 0 {
+		return nil, errors.New("no procedures specified")
+	}
 	if err := validateProcedures(procedures); err != nil {
 		return nil, err
 	}
