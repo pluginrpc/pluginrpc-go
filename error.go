@@ -113,15 +113,15 @@ func (e *Error) ToProto() *pluginrpcv1.Error {
 	pluginrpcError := validateError(e)
 	protoCode, err := pluginrpcError.Code().ToProto()
 	if err != nil {
-		return &pluginrpcv1.Error{
+		return pluginrpcv1.Error_builder{
 			Code:    pluginrpcv1.Code_CODE_INTERNAL,
 			Message: fmt.Sprintf("Error created with invalid code: %s: %s", e.underlying.Error(), err.Error()),
-		}
+		}.Build()
 	}
-	return &pluginrpcv1.Error{
+	return pluginrpcv1.Error_builder{
 		Code:    protoCode,
 		Message: pluginrpcError.Unwrap().Error(),
-	}
+	}.Build()
 }
 
 // Error implements error.
