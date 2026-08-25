@@ -65,9 +65,9 @@ func NewProtoSpec(spec Spec) *pluginrpcv1.Spec {
 	for i, procedure := range procedures {
 		protoProcedures[i] = NewProtoProcedure(procedure)
 	}
-	return &pluginrpcv1.Spec{
+	return pluginrpcv1.Spec_builder{
 		Procedures: protoProcedures,
-	}
+	}.Build()
 }
 
 // MergeSpecs merges the given Specs.
