@@ -63,7 +63,7 @@ func TestEchoRequestNil(t *testing.T) {
 			response, err := echoServiceClient.EchoRequest(context.Background(), nil)
 			require.NoError(t, err)
 			require.NotNil(t, response)
-			require.Equal(t, "", response.GetMessage())
+			require.Empty(t, response.GetMessage())
 		},
 	)
 }
@@ -130,9 +130,7 @@ func TestUnimplemented(t *testing.T) {
 func forEachDimension(t *testing.T, f func(*testing.T, pluginrpc.Client)) {
 	for _, format := range allTestFormats {
 		for j, newClient := range []func(...pluginrpc.ClientOption) (pluginrpc.Client, error){newExecRunnerClient, newServerRunnerClient} {
-			j := j
 			format := format
-			newClient := newClient
 			t.Run(
 				format.String()+strconv.Itoa(j),
 				func(t *testing.T) {

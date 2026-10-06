@@ -1,8 +1,6 @@
 module pluginrpc.com/pluginrpc
 
-go 1.23
-
-toolchain go1.23.0
+go 1.26
 
 require (
 	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.2

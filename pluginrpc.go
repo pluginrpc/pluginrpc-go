@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package pluginrpc implements an RPC framework for plugins.
-package pluginrpc // import "pluginrpc.com/pluginrpc"
+package pluginrpc
 
 const (
 	// Version is the semantic version of the pluginrpc module.
