@@ -1,7 +1,6 @@
 # pluginrpc-go
 
 [![Build](https://github.com/pluginrpc/pluginrpc-go/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/pluginrpc/pluginrpc-go/actions/workflows/ci.yaml)
-[![Report Card](https://goreportcard.com/badge/pluginrpc.com/pluginrpc)](https://goreportcard.com/report/pluginrpc.com/pluginrpc)
 [![GoDoc](https://pkg.go.dev/badge/pluginrpc.com/pluginrpc.svg)](https://pkg.go.dev/pluginrpc.com/pluginrpc)
 [![Slack](https://img.shields.io/badge/slack-buf-%23e01563)](https://buf.build/links/slack)
 
