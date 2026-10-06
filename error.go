@@ -47,7 +47,7 @@ func NewError(code Code, underlying error) *Error {
 }
 
 // NewErrorf returns a new Error.
-
+//
 // Code and a non-empty message are required.
 //
 // An Error will never have an invalid Code or nil underlying error

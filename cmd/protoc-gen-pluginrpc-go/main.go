@@ -619,7 +619,7 @@ func getStreamingMethodsForService(service *protogen.Service) []*protogen.Method
 }
 
 func isUnaryMethod(method *protogen.Method) bool {
-	return !(method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer())
+	return !method.Desc.IsStreamingClient() && !method.Desc.IsStreamingServer()
 }
 
 // Raggedy comments in the generated code are driving me insane. This
